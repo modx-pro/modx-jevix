@@ -15,7 +15,7 @@ set_time_limit(0);
 define('PKG_NAME','Jevix');
 define('PKG_NAME_LOWER',strtolower(PKG_NAME));
 define('PKG_VERSION','1.0.0');
-define('PKG_RELEASE','rc1');
+define('PKG_RELEASE','beta');
 
 /* define sources */
 $root = dirname(dirname(__FILE__)).'/';
@@ -84,19 +84,9 @@ $attr = array(
                     xPDOTransport::UPDATE_OBJECT => true,
                     xPDOTransport::UNIQUE_KEY => 'name',
                 ),
-                'Chunks' => array(
-                    xPDOTransport::PRESERVE_KEYS => false,
-                    xPDOTransport::UPDATE_OBJECT => true,
-                    xPDOTransport::UNIQUE_KEY => 'name',
-                ),
             ),
         ),
         'Snippets' => array(
-            xPDOTransport::PRESERVE_KEYS => false,
-            xPDOTransport::UPDATE_OBJECT => true,
-            xPDOTransport::UNIQUE_KEY => 'name',
-        ),
-        'Chunks' => array (
             xPDOTransport::PRESERVE_KEYS => false,
             xPDOTransport::UPDATE_OBJECT => true,
             xPDOTransport::UNIQUE_KEY => 'name',
@@ -106,10 +96,6 @@ $attr = array(
 $vehicle = $builder->createVehicle($category,$attr);
 
 $modx->log(modX::LOG_LEVEL_INFO,'Adding file resolvers to category...');
-$vehicle->resolve('file',array(
-    'source' => $sources['source_assets'],
-    'target' => "return MODX_ASSETS_PATH . 'components/';",
-));
 $vehicle->resolve('file',array(
     'source' => $sources['source_core'],
     'target' => "return MODX_CORE_PATH . 'components/';",
@@ -135,6 +121,7 @@ if (!is_array($settings)) {
 unset($settings,$setting,$attributes);
 
 /* load menu */
+/*
 $menu = include $sources['data'].'transport.menu.php';
 if (empty($menu)) {
     $modx->log(modX::LOG_LEVEL_ERROR,'Could not package in menu.');
@@ -163,11 +150,12 @@ if (empty($menu)) {
     $modx->log(modX::LOG_LEVEL_INFO,'Packaged in menu.');
 }
 unset($vehicle,$menu);
-
+*/
 /* now pack in the license file, readme and setup options */
 $builder->setPackageAttributes(array(
     'license' => file_get_contents($sources['docs'] . 'license.txt'),
     'readme' => file_get_contents($sources['docs'] . 'readme.txt'),
+    'changelog' => file_get_contents($sources['docs'] . 'changelog.txt'),
     //'setup-options' => array(
         //'source' => $sources['build'].'setup.options.php',
     //),
