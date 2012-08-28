@@ -71,24 +71,6 @@ class Jevix extends JevixCore{
 	}
 
 	function setParams() {
-/*
-cfgAllowTags
-cfgSetTagShort
-cfgSetTagPreformatted
-cfgSetTagNoTypography
-cfgSetTagIsEmpty
-cfgSetTagNoAutoBr
-cfgSetTagCutWithContent
-cfgAllowTagParams
-cfgSetTagParamsRequired
-cfgSetTagChilds
-cfgSetTagParamDefault
-cfgSetAutoReplace
-
-cfgSetXHTMLMode
-cfgSetAutoBrMode
-cfgSetAutoLinkMode
-*/
 		// Allowed tags
 		if (isset($this->config['cfgAllowTags'])) {
 			$this->setParam('cfgAllowTags',explode(',',$this->config['cfgAllowTags']));
