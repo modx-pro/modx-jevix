@@ -15,3 +15,4 @@ $_lang['cfgSetTagPreformatted'] = 'Preformatted tags, in which all is replaced b
 $_lang['cfgSetTagShort'] = 'Short tags, for example - "img".';
 $_lang['cfgSetTagIsEmpty'] = 'Empty tags, that do not needed to remove.';
 $_lang['cfgSetXHTMLMode'] = 'Enable or disable XHTML mode.';
+$_lang['input'] = 'Text for filtering.';

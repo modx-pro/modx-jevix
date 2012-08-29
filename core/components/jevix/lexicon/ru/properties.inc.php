@@ -15,3 +15,4 @@ $_lang['cfgSetTagPreformatted'] = 'Преформатированные теги
 $_lang['cfgSetTagShort'] = 'Коротие теги типа "img".';
 $_lang['cfgSetTagIsEmpty'] = 'Не короткие теги которые не нужно удалять с пустым содержанием.';
 $_lang['cfgSetXHTMLMode'] = 'Включение или выключение режима XTML.';
+$_lang['input'] = 'Текст для фильтрации.';

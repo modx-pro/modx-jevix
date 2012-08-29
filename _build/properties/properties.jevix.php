@@ -9,6 +9,13 @@ $properties = array();
 
 $properties[0] = array(
 	array(
+		'name' => 'input'
+		,'desc' => 'input'
+		,'type' => 'textfield'
+		,'value' => ''
+		,'lexicon' => 'jevix:properties'
+	)
+	,array(
 		'name' => 'cfgAllowTagParams'
 		,'desc' => 'cfgAllowTagParams'
 		,'type' => 'textfield'
