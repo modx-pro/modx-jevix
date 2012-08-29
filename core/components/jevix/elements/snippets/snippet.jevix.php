@@ -8,6 +8,8 @@ if (!empty($scriptProperties['debug'])) {
 $modx->Jevix = $modx->getService('jevix','Jevix',$modx->getOption('core_path').'components/jevix/model/jevix/',$scriptProperties);
 if (!($modx->Jevix instanceof Jevix)) return '';
 
+$modx->Jevix->setParams($scriptProperties);
+
 $errors = null;
 $text = $modx->Jevix->parse($input, $errors);
 

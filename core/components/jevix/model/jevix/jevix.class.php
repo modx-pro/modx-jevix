@@ -3,7 +3,7 @@
 require_once 'jevix.core.php';
 
 class Jevix extends JevixCore{
-	function __construct(modX &$modx,array $config = array()) {
+    function __construct(modX &$modx,array $config = array()) {
 		$this->modx =& $modx;
 
 		$corePath = $this->modx->getOption('jevix.core_path',$config,$this->modx->getOption('core_path').'components/jevix/');
@@ -64,9 +64,12 @@ class Jevix extends JevixCore{
 	}
 	
 	
-	function isJson($string) {
-		json_decode($string);
-		return (json_last_error() == JSON_ERROR_NONE);
+    function isJson($string) {
+        $tmp = json_decode($string,1);
+		//return (json_last_error() == JSON_ERROR_NONE);	// Not workink in PHP < 5.3
+        //return preg_match('/^[{|\[](.*?)[\]|}]$/iu', $string);
+        if ($tmp != null && is_array($tmp)) {return true;}
+        else {return false;}
 	}
 
 	function setParams($params = array()) {
@@ -89,6 +92,7 @@ class Jevix extends JevixCore{
 				$this->setParam($k,$v);
 			}
 			// Simple methods
+            else if (empty($v)) {continue;}
 			else if (!$this->isJSON($v)) {
 				$value = explode(',', $v);
 				$this->setParam($k,$value);
