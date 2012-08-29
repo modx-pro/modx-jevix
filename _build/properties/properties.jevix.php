@@ -26,7 +26,7 @@ $properties[0] = array(
 		'name' => 'cfgAllowTags'
 		,'desc' => 'cfgAllowTags'
 		,'type' => 'textfield'
-		,'value' => 'a,img,i,b,u,em,strong,nobr,li,ol,ul,sup,abbr,pre,acronym,h1,h2,h3,h4,h5,h6,cut,br,code'
+		,'value' => 'p,a,img,i,b,u,em,strong,nobr,li,ol,ul,sup,abbr,pre,acronym,h1,h2,h3,h4,h5,h6,cut,br,code'
 		,'lexicon' => 'jevix:properties'
 	)
 	,array(
