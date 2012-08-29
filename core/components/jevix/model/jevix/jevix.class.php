@@ -1,6 +1,6 @@
 <?php
 
-require 'jevix.core.php';
+require_once 'jevix.core.php';
 
 class Jevix extends JevixCore{
 	function __construct(modX &$modx,array $config = array()) {
@@ -28,7 +28,6 @@ class Jevix extends JevixCore{
 
 		//$this->modx->addPackage('jevix',$this->config['modelPath']);
 		$this->modx->lexicon->load('jevix:default');
-		$this->setParams();
 	}
 
 	/**
@@ -70,15 +69,15 @@ class Jevix extends JevixCore{
 		return (json_last_error() == JSON_ERROR_NONE);
 	}
 
-	function setParams() {
+	function setParams($params = array()) {
 		// Allowed tags
-		if (isset($this->config['cfgAllowTags'])) {
-			$this->setParam('cfgAllowTags',explode(',',$this->config['cfgAllowTags']));
-			unset($this->config['cfgAllowTags']);
+		if (isset($params['cfgAllowTags'])) {
+			$this->setParam('cfgAllowTags',explode(',',$params['cfgAllowTags']));
+			unset($params['cfgAllowTags']);
 		}
 		
 		// Other settings
-		foreach ($this->config as $k => $v) {
+		foreach ($params as $k => $v) {
 			if (strpos($k, 'cfg') === false) {continue;}
 			
 			if (!method_exists($this, $k)) {
