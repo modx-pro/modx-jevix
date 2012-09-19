@@ -894,6 +894,10 @@ class JevixCore{
 						break;
 
 					case '#link':
+						// MODX link
+						if (preg_match('/\[\[\(.*?)\]\]/', $value)) {
+							break;
+						}
 						// Ява-скрипт в ссылке
 						if(preg_match('/javascript:/ui', $value)) {
 							$this->eror('Попытка вставить JavaScript в URI');
