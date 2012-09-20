@@ -895,7 +895,7 @@ class JevixCore{
 
 					case '#link':
 						// MODX link
-						if (preg_match('/\[\[\(.*?)\]\]/', $value)) {
+						if (preg_match('/\[\[(.*?)\]\]/', $value)) {
 							break;
 						}
 						// Ява-скрипт в ссылке
