@@ -13,7 +13,7 @@ $modx->Jevix->setParams($scriptProperties);
 $errors = null;
 $text = $modx->Jevix->parse($input, $errors);
 
-if (!empty($errors)) {
+if (!empty($errors) && !empty($scriptProperties['logErrors'])) {
 	$modx->log(modX::LOG_LEVEL_INFO, print_r($errors,1));
 }
 return $text;

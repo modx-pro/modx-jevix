@@ -10,6 +10,8 @@
  * @version 1.01
  *
  * История версий:
+ * 1.11:
+ *  + Исправлены ошибки из-за которых удалялись теги и аттрибуты со значением "0". Спасибо Dmitry Shurupov (dmitry.shurupov@trueoffice.ru)
  * 1.1:
  *  + cfgSetTagParamsAutoAdd() deprecated. Вместо него следует использовать cfgSetTagParamDefault() с более удобным синтаксисом
  *  + Исправлен критический баг с обработкой атрибутов тегов https://code.google.com/p/jevix/issues/detail?id=1
@@ -69,7 +71,7 @@
  *      + Первый бета-релиз
  */
 
-class JevixCore{
+class JevixCore {
 	const PRINATABLE  = 0x1;
 	const ALPHA       = 0x2;
 	const LAT	 = 0x4;
@@ -94,6 +96,7 @@ class JevixCore{
 	const STATE_INSIDE_TAG = 3;
 	const STATE_INSIDE_NOTEXT_TAG = 4;
 	const STATE_INSIDE_PREFORMATTED_TAG = 5;
+	const STATE_INSIDE_CALLBACK_TAG = 6;
 
 	public $tagsRules = array();
 	public $entities1 = array('"'=>'&quot;', "'"=>'&#39;', '&'=>'&amp;', '<'=>'&lt;', '>'=>'&gt;');
@@ -120,6 +123,7 @@ class JevixCore{
 	protected $tagsStack;
 	protected $openedTag;
 	protected $autoReplace; // Автозамена
+	protected $autoPregReplace; // Автозамена с поддержкой регулярных выражений
 	protected $isXHTMLMode  = true; // <br/>, <img/>
 	protected $isAutoBrMode = true; // \n = <br/>
 	protected $isAutoLinkMode = true;
@@ -149,6 +153,9 @@ class JevixCore{
 	const TR_TAG_NO_TYPOGRAPHY = 12; // Отключение типографирования для тега
 	const TR_TAG_IS_EMPTY = 13;      // Не короткий тег с пустым содержанием имеет право существовать
 	const TR_TAG_NO_AUTO_BR = 14;    // Тег в котором не нужна авто-расстановка <br>
+	const TR_TAG_CALLBACK = 15;      // Тег обрабатывается callback-функцией - в обработку уходит только контент тега(короткие теги не обрабатываются)
+	const TR_TAG_BLOCK_TYPE = 16;    // Тег после которого не нужна автоподстановка доп. <br> 
+	const TR_TAG_CALLBACK_FULL = 17;    // Тег обрабатывается callback-функцией - в обработку уходит весь тег
 
 	/**
 	 * Классы символов генерируются symclass.php
@@ -237,6 +244,14 @@ class JevixCore{
 	}
 
 	/**
+	 * КОНФИГУРАЦИЯ: После тега не нужно добавлять дополнительный <br/>
+	 * @param array|string $tags тег(и)
+	 */
+	function cfgSetTagBlockType($tags){
+		$this->_cfgSetTagsFlag($tags, self::TR_TAG_BLOCK_TYPE, true);
+	}
+
+	/**
 	 * КОНФИГУРАЦИЯ: Добавление разрешённых параметров тега
 	 * @param string $tag тег
 	 * @param string|array $params разрешённые параметры
@@ -304,7 +319,7 @@ class JevixCore{
 	 * CONFIGURATION: Adding autoadd attributes and their values to tag. If the 'rewrite' set as true, the attribute value will be replaced
 	 * @param string $tag tag
 	 * @param string|array $params array of pairs array('name'=>attributeName, 'value'=>attributeValue, 'rewrite'=>true|false)
-	 * @deprecated устаревший синтаксис. Используйте cfgSetTagParamAutoAdd
+	 * @deprecated устаревший синтаксис. Используйте cfgSetTagParamDefault
 	 */
 	function cfgSetTagParamsAutoAdd($tag, $params){
 		throw new Exception("cfgSetTagParamsAutoAdd() is Deprecated. Use cfgSetTagParamDefault() instead");
@@ -327,6 +342,25 @@ class JevixCore{
 		$this->tagsRules[$tag][self::TR_PARAM_AUTO_ADD][$param] = array('value'=>$value, 'rewrite'=>$isRewrite);
 	}
 
+	/**
+	 * КОНФИГУРАЦИЯ: Устанавливаем callback-функцию на обработку содержимого тега
+	 * @param string $tag тег
+	 * @param mixed $callback функция
+	 */
+	function cfgSetTagCallback($tag, $callback = null){
+		if(!isset($this->tagsRules[$tag])) throw new Exception("Тег $tag отсутствует в списке разрешённых тегов");
+		$this->tagsRules[$tag][self::TR_TAG_CALLBACK] = $callback;
+	}
+
+	/**
+	 * КОНФИГУРАЦИЯ: Устанавливаем callback-функцию на обработку содержимого тега
+	 * @param string $tag тег
+	 * @param mixed $callback функция
+	 */
+	function cfgSetTagCallbackFull($tag, $callback = null){
+		if(!isset($this->tagsRules[$tag])) throw new Exception("Тег $tag отсутствует в списке разрешённых тегов");
+		$this->tagsRules[$tag][self::TR_TAG_CALLBACK_FULL] = $callback;
+	}
 
 	/**
 	 * Автозамена
@@ -336,6 +370,16 @@ class JevixCore{
 	 */
 	function cfgSetAutoReplace($from, $to){
 		$this->autoReplace = array('from' => $from, 'to' => $to);
+	}
+
+	/**
+	 * Автозамена с поддержкой регулярных выражений
+	 *
+	 * @param array $from с
+	 * @param array $to на
+	 */
+	function cfgSetAutoPregReplace($from, $to){
+		$this->autoPregReplace = array('from' => $from, 'to' => $to);
 	}
 
 	/**
@@ -393,6 +437,24 @@ class JevixCore{
 		if(!empty($this->autoReplace)){
 			$this->text = str_ireplace($this->autoReplace['from'], $this->autoReplace['to'], $this->text);
 		}
+
+		$replacements = array();
+		if(!empty($this->autoPregReplace)){
+			foreach ($this->autoPregReplace['from'] as $k => $v) {
+				$matches = array();
+				if (preg_match_all($v, $this->text, $matches)) {
+					foreach ($matches[0] as $k2 => $v2) {
+						$replacements['from']["((((($k-$k2)))))"] = $v2;
+						$replacements['to']["((((($k-$k2)))))"] = preg_replace($v, $this->autoPregReplace['to'][$k], $v2);
+					}
+				}
+			}
+		}
+
+		if (!empty($replacements)) {
+			$this->text = str_replace($replacements['from'], array_keys($replacements['from']), $this->text);
+		}
+
 		$this->textBuf = $this->strToArray($this->text);
 		$this->textLen = count($this->textBuf);
 		$this->getCh();
@@ -405,6 +467,11 @@ class JevixCore{
 		$this->skipSpaces();
 		$this->anyThing($content);
 		$errors = $this->errors;
+
+		if (!empty($replacements)) {
+			$content = str_replace(array_keys($replacements['to']), $replacements['to'], $content);
+		}
+
 		return $content;
 	}
 
@@ -661,6 +728,8 @@ class JevixCore{
 		} elseif(!empty($this->tagsRules[$tag][self::TR_TAG_NO_TYPOGRAPHY])) {
 			$this->noTypoMode = true;
 			$this->state = self::STATE_INSIDE_TAG;
+		} elseif(array_key_exists($tag, $this->tagsRules) && array_key_exists(self::TR_TAG_CALLBACK, $this->tagsRules[$tag])){
+			$this->state = self::STATE_INSIDE_CALLBACK_TAG;
 		} else {
 			$this->state = self::STATE_INSIDE_TAG;
 		}
@@ -671,6 +740,8 @@ class JevixCore{
 		$content = '';
 		if($this->state == self::STATE_INSIDE_PREFORMATTED_TAG){
 			$this->preformatted($content, $tag);
+		} elseif($this->state == self::STATE_INSIDE_CALLBACK_TAG){
+			$this->callback($content, $tag);
 		} else {
 			$this->anyThing($content, $tag);
 		}
@@ -705,6 +776,28 @@ class JevixCore{
 				if($isClosedTag && $tag == $insideTag) return;
 			}
 			$content.= isset($this->entities2[$this->curCh]) ? $this->entities2[$this->curCh] : $this->curCh;
+			$this->getCh();
+		}
+	}
+
+	protected function callback(&$content = '', $insideTag = null){
+		while($this->curChClass){
+			if($this->curCh == '<'){
+				$tag = '';
+				$this->saveState();
+				// Пытаемся найти закрывающийся тег
+				$isClosedTag = $this->tagClose($tag);
+				// Возвращаемся назад, если тег был найден
+				if($isClosedTag) $this->restoreState();
+				// Если закрылось то, что открылось - заканчиваем и возвращаем true
+				if($isClosedTag && $tag == $insideTag) {
+					if ($callback = $this->tagsRules[$tag][self::TR_TAG_CALLBACK]) {
+						$content = call_user_func($callback, $content);
+					}
+					return;
+				}
+			}
+			$content.= $this->curCh;
 			$this->getCh();
 		}
 	}
@@ -865,17 +958,37 @@ class JevixCore{
 		foreach($params as $param=>$value){
 			$param = mb_strtolower($param, 'UTF-8');
 			$value = trim($value);
-			if(empty($value)) continue;
+			if($value == '') continue;
 
 			// Атрибут тега разрешён? Какие возможны значения? Получаем список правил
 			$paramAllowedValues = isset($tagRules[self::TR_PARAM_ALLOWED][$param]) ? $tagRules[self::TR_PARAM_ALLOWED][$param] : false;
 			if(empty($paramAllowedValues)) continue;
 
 			// Если есть список разрешённых параметров тега
-			if(is_array($paramAllowedValues) && !in_array($value, $paramAllowedValues)) {
-				$this->eror("Недопустимое значение для атрибута тега $tag $param=$value");
-				continue;
-			// Если атрибут тега помечен как разрешённый, но правила не указаны - смотрим в массив стандартных правил для атрибутов
+			if (is_array($paramAllowedValues)) {
+				// проверка на список доменов
+				if (isset($paramAllowedValues['#domain']) and is_array($paramAllowedValues['#domain'])) {
+					if(preg_match('/javascript:/ui', $value)) {
+						$this->eror('Попытка вставить JavaScript в URI');
+						continue;
+					}
+					$bOK=false;
+					foreach ($paramAllowedValues['#domain'] as $sDomain) {
+						$sDomain=preg_quote($sDomain);
+						if (preg_match("@^(http|https|ftp)://([\w\d]+\.)?{$sDomain}/@ui",$value)) {
+							$bOK=true;
+							break;
+						}
+					}
+					if (!$bOK) {
+						$this->eror("Недопустимое значение для атрибута тега $tag $param=$value");
+						continue;
+					}
+				} elseif (!in_array($value, $paramAllowedValues)) {
+					$this->eror("Недопустимое значение для атрибута тега $tag $param=$value");
+					continue;
+				}
+				// Если атрибут тега помечен как разрешённый, но правила не указаны - смотрим в массив стандартных правил для атрибутов
 			} elseif($paramAllowedValues === true && !empty($this->defaultTagParamRules[$param])){
 				$paramAllowedValues = $this->defaultTagParamRules[$param];
 			}
@@ -895,7 +1008,7 @@ class JevixCore{
 
 					case '#link':
 						// MODX link
-						if (preg_match('/\[\[(.*?)\]\]/', $value)) {
+						if (preg_match('/\[\[(.*?)\]\]/ui', $value)) {
 							break;
 						}
 						// Ява-скрипт в ссылке
@@ -904,12 +1017,12 @@ class JevixCore{
 							continue(2);
 						}
 						// Первый символ должен быть a-z0-9 или #!
-						 if(!preg_match('/^[a-z0-9\/\#]/ui', $value)) {
+						if(!preg_match('/^[a-z0-9\/\#]/ui', $value)) {
 							$this->eror('URI: Первый символ адреса должен быть буквой или цифрой');
 							continue(2);
 						}
 						// HTTP в начале если нет
-						if(!preg_match('/^(http|https|ftp):\/\//ui', $value) && !preg_match('/^(\/|\#)/ui', $value) ) $value = 'http://'.$value;
+						if(!preg_match('/^(http|https|ftp):\/\//ui', $value) && !preg_match('/^(\/|\#)/ui', $value) && !preg_match('/^(mailto):/ui', $value) ) $value = 'http://'.$value;
 						break;
 
 					case '#image':
@@ -919,7 +1032,7 @@ class JevixCore{
 							continue(2);
 						}
 						// HTTP в начале если нет
-						if(!preg_match('/^(http|https|ftp):\/\//ui', $value) && !preg_match('/^\//ui', $value)) $value = 'http://'.$value;
+						if(!preg_match('/^(http|https):\/\//ui', $value) && !preg_match('/^\//ui', $value)) $value = 'http://'.$value;
 						break;
 
 					default:
@@ -937,40 +1050,46 @@ class JevixCore{
 		$requiredParams = isset($tagRules[self::TR_PARAM_REQUIRED]) ? array_keys($tagRules[self::TR_PARAM_REQUIRED]) : array();
 		if($requiredParams){
 			foreach($requiredParams as $requiredParam){
-				if(empty($resParams[$requiredParam])) return $content;
+				if(!isset($resParams[$requiredParam])) return $content;
 			}
 		}
 
 		// Автодобавляемые параметры
 		if(!empty($tagRules[self::TR_PARAM_AUTO_ADD])){
-		  foreach($tagRules[self::TR_PARAM_AUTO_ADD] as $name => $aValue) {
-		      // If there isn't such attribute - setup it
-		      if(!array_key_exists($name, $resParams) or ($aValue['rewrite'] and $resParams[$name] != $aValue['value'])) {
-			  $resParams[$name] = $aValue['value'];
-		      }
-		  }
-		}
-		
-		// Пустой некороткий тег удаляем кроме исключений
-		if (!isset($tagRules[self::TR_TAG_IS_EMPTY]) or !$tagRules[self::TR_TAG_IS_EMPTY]) {
-			if(!$short && empty($content)) return '';
-		}
-		// Собираем тег
-		$text='<'.$tag;
-
-		// Параметры
-		foreach($resParams as $param => $value) {
-			if (!empty($value)) {
-				$text.=' '.$param.'="'.$value.'"';
+			foreach($tagRules[self::TR_PARAM_AUTO_ADD] as $name => $aValue) {
+				// If there isn't such attribute - setup it
+				if(!array_key_exists($name, $resParams) or ($aValue['rewrite'] and $resParams[$name] != $aValue['value'])) {
+					$resParams[$name] = $aValue['value'];
+				}
 			}
 		}
-		
-		// Закрытие тега (если короткий то без контента)
-		$text.= $short && $this->isXHTMLMode ? '/>' : '>';
-		if(isset($tagRules[self::TR_TAG_CONTAINER])) $text .= "\r\n";
-		if(!$short) $text.= $content.'</'.$tag.'>';
-		if($parentTagIsContainer) $text .= "\r\n";
-		if($tag == 'br') $text.="\r\n";
+
+		// Пустой некороткий тег удаляем кроме исключений
+		if (!isset($tagRules[self::TR_TAG_IS_EMPTY]) or !$tagRules[self::TR_TAG_IS_EMPTY]) {
+			if(!$short && $content == '') return '';
+		}
+
+		// Если тег обрабатывает "полным" колбеком
+		if (isset($tagRules[self::TR_TAG_CALLBACK_FULL])) {
+			$text = call_user_func($tagRules[self::TR_TAG_CALLBACK_FULL], $tag, $resParams);
+		} else {
+			// Собираем тег
+			$text='<'.$tag;
+
+			// Параметры
+			foreach($resParams as $param => $value) {
+				if ($value != '') {
+					$text.=' '.$param.'="'.$value.'"';
+				}
+			}
+
+			// Закрытие тега (если короткий то без контента)
+			$text.= $short && $this->isXHTMLMode ? '/>' : '>';
+			if(isset($tagRules[self::TR_TAG_CONTAINER])) $text .= "\r\n";
+			if(!$short) $text.= $content.'</'.$tag.'>';
+			if($parentTagIsContainer) $text .= "\r\n";
+			if($tag == 'br') $text.="\r\n";
+		}
 		return $text;
 	}
 
@@ -1002,15 +1121,18 @@ class JevixCore{
 				// Пропускаем пробелы после <br> и запрещённых тегов, которые вырезаются парсером
 				if ($tag=='br') {
 					$this->skipNL();
-				} elseif (empty($tagText)){
+				} elseif (isset($this->tagsRules[$tag]) and isset($this->tagsRules[$tag][self::TR_TAG_BLOCK_TYPE])) {
+					$count=0;
+					$this->skipNL($count,2);
+				} elseif ($tagText == ''){
 					$this->skipSpaces();
 				}
 
-			// Коментарий <!-- -->
+				// Коментарий <!-- -->
 			} elseif($this->curCh == '<' && $this->comment()){
 				continue;
 
-			// Конец тега или символ <
+				// Конец тега или символ <
 			} elseif($this->curCh == '<') {
 				// Если встречается <, но это не тег
 				// то это либо закрывающийся тег либо знак <
@@ -1030,7 +1152,7 @@ class JevixCore{
 					$this->getCh();
 				}
 
-			// Текст
+				// Текст
 			} elseif($this->text($text)){
 				$content.=$text;
 			}
@@ -1043,14 +1165,17 @@ class JevixCore{
 	 * Пропуск переводов строк подсчет кол-ва
 	 *
 	 * @param int $count ссылка для возвращения числа переводов строк
+	 * @param int $limit максимальное число пропущенных переводов строк, при уставновке в 0 - не лимитируется
 	 * @return boolean
 	 */
-	protected function skipNL(&$count = 0){
+	protected function skipNL(&$count = 0,$limit=0){
 		if(!($this->curChClass & self::NL)) return false;
 		$count++;
 		$firstNL = $this->curCh;
 		$nl = $this->getCh();
 		while($this->curChClass & self::NL){
+			// Проверяем, не превышен ли лимит 
+			if($limit>0 and $count>=$limit) break;
 			// Если символ новый строки ткой же как и первый увеличиваем счетчик
 			// новых строк. Это сработает при любых сочетаниях
 			// \r\n\r\n, \r\r, \n\n - две перевода
@@ -1099,7 +1224,7 @@ class JevixCore{
 		if($this->curChClass & self::RUS) {
 			if($punctuation != '.') $punctuation.= ' ';
 			return true;
-		// Далее идёт пробел, перенос строки, конец текста
+			// Далее идёт пробел, перенос строки, конец текста
 		} elseif(($this->curChClass & self::SPACE) || ($this->curChClass & self::NL) || !$this->curChClass){
 			return true;
 		} else {
@@ -1162,8 +1287,8 @@ class JevixCore{
 		// Закрывается тогда, одна из кавычек была открыта и (до кавычки не было пробела или пробел или пунктуация есть после кавычки)
 		// Или, если открыто больше двух кавычек - точно закрываем
 		$closed =  ($this->quotesOpened >= 2) ||
-			  (($this->quotesOpened >  0) &&
-			   (!$spacesBefore || $this->curChClass & self::SPACE || $this->curChClass & self::PUNCTUATUON));
+			(($this->quotesOpened >  0) &&
+				(!$spacesBefore || $this->curChClass & self::SPACE || $this->curChClass & self::PUNCTUATUON));
 		return true;
 	}
 
@@ -1232,14 +1357,14 @@ class JevixCore{
 			} elseif ($this->isAutoBrMode && $this->skipNL($brCount)){
 				// Перенос строки
 				if ($this->curParentTag
-				  and isset($this->tagsRules[$this->curParentTag])
-				  and isset($this->tagsRules[$this->curParentTag][self::TR_TAG_NO_AUTO_BR])
-				  and (is_null($this->openedTag) or isset($this->tagsRules[$this->openedTag][self::TR_TAG_NO_AUTO_BR]))
-				  ) {
-				  // пропускаем <br/>
+					and isset($this->tagsRules[$this->curParentTag])
+						and isset($this->tagsRules[$this->curParentTag][self::TR_TAG_NO_AUTO_BR])
+							and (is_null($this->openedTag) or isset($this->tagsRules[$this->openedTag][self::TR_TAG_NO_AUTO_BR]))
+				) {
+					// пропускаем <br/>
 				} else {
-				  $br = $this->br.$this->nl;
-				  $text.= $brCount == 1 ? $br : $br.$br;
+					$br = $this->br.$this->nl;
+					$text.= $brCount == 1 ? $br : $br.$br;
 				}
 				// Помечаем что новая строка и новое слово
 				$newLine = true;
@@ -1271,7 +1396,7 @@ class JevixCore{
 		$url = '';
 		//$name = $this->name();
 		//switch($name)
-		$urlChMask = self::URL | self::ALPHA;
+		$urlChMask = self::URL | self::ALPHA | self::PUNCTUATUON;
 
 		if($this->matchStr('http://')){
 			while($this->curChClass & $urlChMask){
@@ -1285,6 +1410,19 @@ class JevixCore{
 			}
 
 			$href = 'http://'.$url;
+			return true;
+		} elseif($this->matchStr('https://')){
+			while($this->curChClass & $urlChMask){
+				$url.= $this->curCh;
+				$this->getCh();
+			}
+
+			if(!mb_strlen($url, 'UTF-8')) {
+				$this->restoreState();
+				return false;
+			}
+
+			$href = 'https://'.$url;
 			return true;
 		} elseif($this->matchStr('www.')){
 			while($this->curChClass & $urlChMask){
@@ -1329,23 +1467,23 @@ class JevixCore{
  * @return int код символа
  */
 function uniord($c) {
-    $h = ord($c{0});
-    if ($h <= 0x7F) {
-	return $h;
-    } else if ($h < 0xC2) {
-	return false;
-    } else if ($h <= 0xDF) {
-	return ($h & 0x1F) << 6 | (ord($c{1}) & 0x3F);
-    } else if ($h <= 0xEF) {
-	return ($h & 0x0F) << 12 | (ord($c{1}) & 0x3F) << 6
-				 | (ord($c{2}) & 0x3F);
-    } else if ($h <= 0xF4) {
-	return ($h & 0x0F) << 18 | (ord($c{1}) & 0x3F) << 12
-				 | (ord($c{2}) & 0x3F) << 6
-				 | (ord($c{3}) & 0x3F);
-    } else {
-	return false;
-    }
+	$h = ord($c{0});
+	if ($h <= 0x7F) {
+		return $h;
+	} else if ($h < 0xC2) {
+		return false;
+	} else if ($h <= 0xDF) {
+		return ($h & 0x1F) << 6 | (ord($c{1}) & 0x3F);
+	} else if ($h <= 0xEF) {
+		return ($h & 0x0F) << 12 | (ord($c{1}) & 0x3F) << 6
+			| (ord($c{2}) & 0x3F);
+	} else if ($h <= 0xF4) {
+		return ($h & 0x0F) << 18 | (ord($c{1}) & 0x3F) << 12
+			| (ord($c{2}) & 0x3F) << 6
+			| (ord($c{3}) & 0x3F);
+	} else {
+		return false;
+	}
 }
 
 /**
@@ -1355,19 +1493,19 @@ function uniord($c) {
  * @return string символ utf-8
  */
 function unichr($c) {
-    if ($c <= 0x7F) {
-	return chr($c);
-    } else if ($c <= 0x7FF) {
-	return chr(0xC0 | $c >> 6) . chr(0x80 | $c & 0x3F);
-    } else if ($c <= 0xFFFF) {
-	return chr(0xE0 | $c >> 12) . chr(0x80 | $c >> 6 & 0x3F)
-				    . chr(0x80 | $c & 0x3F);
-    } else if ($c <= 0x10FFFF) {
-	return chr(0xF0 | $c >> 18) . chr(0x80 | $c >> 12 & 0x3F)
-				    . chr(0x80 | $c >> 6 & 0x3F)
-				    . chr(0x80 | $c & 0x3F);
-    } else {
-	return false;
-    }
+	if ($c <= 0x7F) {
+		return chr($c);
+	} else if ($c <= 0x7FF) {
+		return chr(0xC0 | $c >> 6) . chr(0x80 | $c & 0x3F);
+	} else if ($c <= 0xFFFF) {
+		return chr(0xE0 | $c >> 12) . chr(0x80 | $c >> 6 & 0x3F)
+			. chr(0x80 | $c & 0x3F);
+	} else if ($c <= 0x10FFFF) {
+		return chr(0xF0 | $c >> 18) . chr(0x80 | $c >> 12 & 0x3F)
+			. chr(0x80 | $c >> 6 & 0x3F)
+			. chr(0x80 | $c & 0x3F);
+	} else {
+		return false;
+	}
 }
 ?>

@@ -1,5 +1,14 @@
 Changelog for Jevix.
 
-Jevix 1.0.0
+
+1.1.0
+==============
+- Updated Jevix class from LiveStreet CMS
+- New parameter cfgSetTagBlockType for tags which do not need to insert <br> after.
+- New parameter cfgSetAutoPregReplace for auto replace with support of regular expressions.
+- Tuned default properties, enabled tables.
+- Links are now supports modx tags, e.g.  [[~1]], [[+link]]
+
+1.0.0
 ==============
 - Initial release.

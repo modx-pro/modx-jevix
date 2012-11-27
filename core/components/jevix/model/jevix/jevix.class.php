@@ -105,10 +105,10 @@ class Jevix extends JevixCore{
 					catch (Exception $ex) {$this->modx->log(modX::LOG_LEVEL_ERROR, $ex);}
 				} 
 			}
-			else if ($k == 'cfgSetAutoReplace') {
+			else if ($k == 'cfgSetAutoReplace' || $k == 'cfgSetAutoPregReplace') {
 				$value = json_decode($v, true);
 				if (count($value) != 2) {continue;}
-				try {$this->cfgSetAutoReplace($value[0], $value[1]);}
+				try {$this->$k($value[0], $value[1]);}
 				catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_ERROR, $ex);}
 			}
 			else if ($k == 'cfgSetTagChilds') {

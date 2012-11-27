@@ -16,6 +16,20 @@ $properties[0] = array(
 		,'lexicon' => 'jevix:properties'
 	)
 	,array(
+		'name' => 'debug'
+		,'desc' => 'debug'
+		,'type' => 'combo-boolean'
+		,'value' => 'false'
+		,'lexicon' => 'jevix:properties'
+	)
+	,array(
+		'name' => 'logErrors'
+		,'desc' => 'logErrors'
+		,'type' => 'combo-boolean'
+		,'value' => 'false'
+		,'lexicon' => 'jevix:properties'
+	)
+	,array(
 		'name' => 'cfgAllowTagParams'
 		,'desc' => 'cfgAllowTagParams'
 		,'type' => 'textfield'
@@ -26,7 +40,7 @@ $properties[0] = array(
 		'name' => 'cfgAllowTags'
 		,'desc' => 'cfgAllowTags'
 		,'type' => 'textfield'
-		,'value' => 'p,a,img,i,b,u,em,strong,nobr,li,ol,ul,sup,abbr,pre,acronym,h1,h2,h3,h4,h5,h6,cut,br,code'
+		,'value' => 'p,a,img,i,b,u,em,strong,nobr,li,ol,ul,sup,abbr,pre,acronym,h1,h2,h3,h4,h5,h6,cut,br,code,table,tr,th,td'
 		,'lexicon' => 'jevix:properties'
 	)
 	,array(
@@ -47,14 +61,14 @@ $properties[0] = array(
 		'name' => 'cfgSetAutoReplace'
 		,'desc' => 'cfgSetAutoReplace'
 		,'type' => 'textfield'
-		,'value' => '[["+/-","(c)","(r)"],["±","©","®"]]'
+		,'value' => '[["+/-","(c)","(с)","(r)","(C)","(С)","(R)"],["±","©","©","®","©","©","®"]]'
 		,'lexicon' => 'jevix:properties'
 	)
 	,array(
 		'name' => 'cfgSetTagChilds'
 		,'desc' => 'cfgSetTagChilds'
 		,'type' => 'textfield'
-		,'value' => '[["ul","li",true,true],["ol","li",true,true]]'
+		,'value' => '[["ul",["li"],false,true],["ol",["li"],false,true],["table",["tr"],false,true],["tr",["td","th"],false,true]]'
 		,'lexicon' => 'jevix:properties'
 	)
 	,array(
@@ -68,14 +82,14 @@ $properties[0] = array(
 		'name' => 'cfgSetTagNoAutoBr'
 		,'desc' => 'cfgSetTagNoAutoBr'
 		,'type' => 'textfield'
-		,'value' => 'ul,ol'
+		,'value' => 'ul,ol,object,table,tr'
 		,'lexicon' => 'jevix:properties'
 	)
 	,array(
 		'name' => 'cfgSetTagNoTypography'
 		,'desc' => 'cfgSetTagNoTypography'
 		,'type' => 'textfield'
-		,'value' => 'code'
+		,'value' => 'pre,code,video'
 		,'lexicon' => 'jevix:properties'
 	)
 	,array(
@@ -96,7 +110,7 @@ $properties[0] = array(
 		'name' => 'cfgSetTagPreformatted'
 		,'desc' => 'cfgSetTagPreformatted'
 		,'type' => 'textfield'
-		,'value' => 'pre'
+		,'value' => 'pre,code,video'
 		,'lexicon' => 'jevix:properties'
 	)
 	,array(
@@ -118,6 +132,20 @@ $properties[0] = array(
 		,'desc' => 'cfgSetXHTMLMode'
 		,'type' => 'combo-boolean'
 		,'value' => false
+		,'lexicon' => 'jevix:properties'
+	)
+	,array(
+		'name' => 'cfgSetTagBlockType'
+		,'desc' => 'cfgSetTagBlockType'
+		,'type' => 'textfield'
+		,'value' => '["h4","h5","h6","ol","ul","blockquote","pre","code"]'
+		,'lexicon' => 'jevix:properties'
+	)
+	,array(
+		'name' => 'cfgSetAutoPregReplace'
+		,'desc' => 'cfgSetAutoPregReplace'
+		,'type' => 'textfield'
+		,'value' => '[["\/<video>http:\\\/\\\/(?:www\\.|)youtube\\.com\\\/watch\\?v=([a-zA-Z0-9_\\-]+)(&.+)?<\\\/video>\/Ui","\/<video>http:\\\/\\\/(?:www\\.|)youtu\\.be\\\/([a-zA-Z0-9_\\-]+)(&.+)?<\\\/video>\/Ui"],["<iframe width=\"700\" height=\"394\" src=\"http:\/\/www.youtube.com\/embed\/$1\" frameborder=\"0\" allowfullscreen><\/iframe>","<iframe width=\"700\" height=\"394\" src=\"http:\/\/www.youtube.com\/embed\/$1\" frameborder=\"0\" allowfullscreen><\/iframe>"]]'
 		,'lexicon' => 'jevix:properties'
 	)
 );
