@@ -145,7 +145,7 @@ $properties[0] = array(
 		'name' => 'cfgSetAutoPregReplace'
 		,'desc' => 'cfgSetAutoPregReplace'
 		,'type' => 'textfield'
-		,'value' => '[["\/<video>http:\\\/\\\/(?:www\\.|)youtube\\.com\\\/watch\\?v=([a-zA-Z0-9_\\-]+)(&.+)?<\\\/video>\/Ui","\/<video>http:\\\/\\\/(?:www\\.|)youtu\\.be\\\/([a-zA-Z0-9_\\-]+)(&.+)?<\\\/video>\/Ui"],["<iframe width=\"700\" height=\"394\" src=\"http:\/\/www.youtube.com\/embed\/$1\" frameborder=\"0\" allowfullscreen><\/iframe>","<iframe width=\"700\" height=\"394\" src=\"http:\/\/www.youtube.com\/embed\/$1\" frameborder=\"0\" allowfullscreen><\/iframe>"]]'
+		,'value' => '[["\/<video>http:\\\\\/\\\\\/(?:www\\\\.|)youtube\\\\.com\\\\\/watch\\\\?v=([a-zA-Z0-9_\\\\-]+)(&.+)?<\\\\\/video>\/Ui","\/<video>http:\\\\\/\\\\\/(?:www\\\\.|)youtu\\\\.be\\\\\/([a-zA-Z0-9_\\\\-]+)(&.+)?<\\\\\/video>\/Ui"],["<iframe width=\"700\" height=\"394\" src=\"http:\/\/www.youtube.com\/embed\/$1\" frameborder=\"0\" allowfullscreen><\/iframe>","<iframe width=\"700\" height=\"394\" src=\"http:\/\/www.youtube.com\/embed\/$1\" frameborder=\"0\" allowfullscreen><\/iframe>"]]'
 		,'lexicon' => 'jevix:properties'
 	)
 );
