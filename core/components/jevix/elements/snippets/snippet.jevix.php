@@ -1,5 +1,5 @@
 <?php
-if (!empty($scriptProperties['debug'])) {
+if (!empty($debug) && $debug != 'false') {
 	ini_set('display_errors', 1);
 	ini_set('error_reporting', -1);
 	$modx->setLogLevel(xPDO::LOG_LEVEL_INFO);
@@ -13,7 +13,7 @@ $modx->Jevix->setParams($scriptProperties);
 $errors = null;
 $text = $modx->Jevix->parse($input, $errors);
 
-if (!empty($errors) && !empty($scriptProperties['logErrors'])) {
+if (!empty($errors) && !empty($logErrors) && $logErrors != 'false') {
 	$modx->log(modX::LOG_LEVEL_INFO, print_r($errors,1));
 }
 return $text;
