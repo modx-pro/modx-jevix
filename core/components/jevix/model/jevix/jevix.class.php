@@ -85,6 +85,7 @@ class Jevix extends JevixCore{
 			
 			if (!method_exists($this, $k)) {
 				$this->modx->log(modX::LOG_LEVEL_ERROR, 'Error on Jevix init. There is no method '.$k);
+				continue;
 			}
 			
 			// Flags
@@ -102,27 +103,27 @@ class Jevix extends JevixCore{
 				$value = json_decode($v, true);
 				foreach ($value as $k2 => $v2) {
 					try {$this->$k($k2,$v2);}
-					catch (Exception $ex) {$this->modx->log(modX::LOG_LEVEL_ERROR, $ex);}
+					catch (Exception $ex) {$this->modx->log(modX::LOG_LEVEL_INFO, $ex);}
 				} 
 			}
 			else if ($k == 'cfgSetAutoReplace' || $k == 'cfgSetAutoPregReplace') {
 				$value = json_decode($v, true);
 				if (count($value) != 2) {continue;}
 				try {$this->$k($value[0], $value[1]);}
-				catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_ERROR, $ex);}
+				catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_INFO, $ex);}
 			}
 			else if ($k == 'cfgSetTagChilds') {
 				$value = json_decode($v, true);
 				foreach ($value as $tmp) {
 					try {$this->cfgSetTagChilds($tmp[0], $tmp[1], $tmp[2], $tmp[3]);}
-					catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_ERROR, $ex);}
+					catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_INFO, $ex);}
 				}
 			}
 			else if ($k == 'cfgSetTagParamDefault') {
 				$value = json_decode($v, true);
 				foreach ($value as $tmp) {
 					try {$this->cfgSetTagParamDefault($tmp[0], $tmp[1], $tmp[2], $tmp[3]);}
-					catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_ERROR, $ex);}
+					catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_INFO, $ex);}
 				}
 			}
 			// Other methods
@@ -138,7 +139,7 @@ class Jevix extends JevixCore{
 			$this->$param($value);
 		}
 		catch(Exception $ex) {
-			$this->modx->log(modX::LOG_LEVEL_ERROR, $ex);
+			$this->modx->log(modX::LOG_LEVEL_INFO, $ex);
 		}
 	}
 	
