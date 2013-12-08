@@ -11,11 +11,7 @@ $mtime = $mtime[1] + $mtime[0];
 $tstart = $mtime;
 set_time_limit(0);
 
-/* define package */
-define('PKG_NAME','Jevix');
-define('PKG_NAME_LOWER',strtolower(PKG_NAME));
-define('PKG_VERSION','1.1.1');
-define('PKG_RELEASE','pl');
+require_once 'build.config.php';
 
 /* define sources */
 $root = dirname(dirname(__FILE__)).'/';
@@ -35,8 +31,6 @@ $sources = array(
 );
 unset($root);
 
-/* override with your own defines here (see build.config.sample.php) */
-require_once $sources['build'] . '/build.config.php';
 require_once MODX_CORE_PATH . 'model/modx/modx.class.php';
 require_once $sources['build'] . '/includes/functions.php';
 

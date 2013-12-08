@@ -1,5 +1,25 @@
 <?php
-define('MODX_BASE_PATH', dirname(dirname(dirname(__FILE__))) . '/');
+
+/* define package */
+define('PKG_NAME','Jevix');
+define('PKG_NAME_LOWER',strtolower(PKG_NAME));
+
+define('PKG_VERSION','1.1.1');
+define('PKG_RELEASE','pl');
+define('PKG_AUTO_INSTALL', true);
+
+
+/* define paths */
+if (isset($_SERVER['MODX_BASE_PATH'])) {
+	define('MODX_BASE_PATH', $_SERVER['MODX_BASE_PATH']);
+}
+elseif (file_exists(dirname(dirname(dirname(__FILE__))) . '/core')) {
+	define('MODX_BASE_PATH', dirname(dirname(dirname(__FILE__))) . '/');
+}
+else {
+	define('MODX_BASE_PATH', dirname(dirname(dirname(dirname(__FILE__)))) . '/');
+}
+
 define('MODX_CORE_PATH', MODX_BASE_PATH . 'core/');
 define('MODX_MANAGER_PATH', MODX_BASE_PATH . 'manager/');
 define('MODX_CONNECTORS_PATH', MODX_BASE_PATH . 'connectors/');
