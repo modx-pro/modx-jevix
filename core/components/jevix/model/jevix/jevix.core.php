@@ -1398,7 +1398,7 @@ class JevixCore {
 		//switch($name)
 		$urlChMask = self::URL | self::ALPHA | self::PUNCTUATUON;
 
-		if($this->matchStr('http://')){
+		if ($this->matchStr('http://')) {
 			while($this->curChClass & $urlChMask){
 				$url.= $this->curCh;
 				$this->getCh();
@@ -1410,8 +1410,8 @@ class JevixCore {
 			}
 
 			$href = 'http://'.$url;
-			return true;
-		} elseif($this->matchStr('https://')){
+		}
+		elseif ($this->matchStr('https://')) {
 			while($this->curChClass & $urlChMask){
 				$url.= $this->curCh;
 				$this->getCh();
@@ -1423,8 +1423,8 @@ class JevixCore {
 			}
 
 			$href = 'https://'.$url;
-			return true;
-		} elseif($this->matchStr('www.')){
+		}
+		elseif ($this->matchStr('www.')) {
 			while($this->curChClass & $urlChMask){
 				$url.= $this->curCh;
 				$this->getCh();
@@ -1437,10 +1437,18 @@ class JevixCore {
 
 			$url = 'www.'.$url;
 			$href = 'http://'.$url;
+		}
+		if (!empty($href) && preg_match('/[.,-?!:;]+$/', $href, $matches)) {
+			$count = strlen($matches[0]);
+			$href = substr($href, 0, $count * -1);
+			$url = substr($url, 0, $count * -1);
+			$this->goToPosition($this->curPos - $count);
 			return true;
 		}
-		$this->restoreState();
-		return false;
+		else {
+			$this->restoreState();
+			return false;
+		}
 	}
 
 	protected function eror($message){

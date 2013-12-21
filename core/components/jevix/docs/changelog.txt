@@ -1,5 +1,9 @@
 Changelog for Jevix.
 
+1.2.0
+==============
+- Corrected the punctuation at the end of the link.
+
 1.1.1
 ==============
 - Fixed errors handling
