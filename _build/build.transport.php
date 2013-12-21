@@ -36,124 +36,82 @@ require_once $sources['build'] . '/includes/functions.php';
 
 $modx= new modX();
 $modx->initialize('mgr');
-echo '<pre>'; /* used for nice formatting of log messages */
 $modx->setLogLevel(modX::LOG_LEVEL_INFO);
 $modx->setLogTarget('ECHO');
 $modx->getService('error','error.modError');
-
 $modx->loadClass('transport.modPackageBuilder','',false, true);
+
+if (!XPDO_CLI_MODE) {echo '<pre>';}
 $builder = new modPackageBuilder($modx);
 $builder->createPackage(PKG_NAME_LOWER,PKG_VERSION,PKG_RELEASE);
-$builder->registerNamespace(PKG_NAME_LOWER,false,true,'{core_path}components/'.PKG_NAME_LOWER.'/');
+$builder->registerNamespace(PKG_NAME_LOWER,false,true,PKG_NAMESPACE_PATH);
 $modx->log(modX::LOG_LEVEL_INFO,'Created Transport Package and Namespace.');
 
 /* create category */
+$modx->log(xPDO::LOG_LEVEL_INFO,'Created category.');
+/* @var modCategory $category */
 $category= $modx->newObject('modCategory');
-$category->set('id',1);
 $category->set('category',PKG_NAME);
-
-/* add snippets */
-$snippets = include $sources['data'].'transport.snippets.php';
-if (!is_array($snippets)) {
-	$modx->log(modX::LOG_LEVEL_ERROR,'Could not package in snippets.');
-} else {
-	$category->addMany($snippets);
-	$modx->log(modX::LOG_LEVEL_INFO,'Packaged in '.count($snippets).' snippets.');
-}
-
 /* create category vehicle */
 $attr = array(
 	xPDOTransport::UNIQUE_KEY => 'category',
 	xPDOTransport::PRESERVE_KEYS => false,
 	xPDOTransport::UPDATE_OBJECT => true,
 	xPDOTransport::RELATED_OBJECTS => true,
-	xPDOTransport::RELATED_OBJECT_ATTRIBUTES => array (
-		'Children' => array(
-			xPDOTransport::PRESERVE_KEYS => false,
-			xPDOTransport::UPDATE_OBJECT => true,
-			xPDOTransport::UNIQUE_KEY => 'category',
-			xPDOTransport::RELATED_OBJECTS => true,
-			xPDOTransport::RELATED_OBJECT_ATTRIBUTES => array (
-				'Snippets' => array(
-					xPDOTransport::PRESERVE_KEYS => false,
-					xPDOTransport::UPDATE_OBJECT => true,
-					xPDOTransport::UNIQUE_KEY => 'name',
-				),
-			),
-		),
-		'Snippets' => array(
-			xPDOTransport::PRESERVE_KEYS => false,
-			xPDOTransport::UPDATE_OBJECT => true,
-			xPDOTransport::UNIQUE_KEY => 'name',
-		),
-	),
 );
+
+/* add snippets */
+if (defined('BUILD_SNIPPET_UPDATE')) {
+	$attr[xPDOTransport::RELATED_OBJECT_ATTRIBUTES]['Snippets'] = array (
+		xPDOTransport::PRESERVE_KEYS => false,
+		xPDOTransport::UPDATE_OBJECT => BUILD_SNIPPET_UPDATE,
+		xPDOTransport::UNIQUE_KEY => 'name',
+	);
+	$snippets = include $sources['data'].'transport.snippets.php';
+	if (!is_array($snippets)) {
+		$modx->log(modX::LOG_LEVEL_ERROR,'Could not package in snippets.');
+	} else {
+		$category->addMany($snippets);
+		$modx->log(modX::LOG_LEVEL_INFO,'Packaged in '.count($snippets).' snippets.');
+	}
+}
+
 $vehicle = $builder->createVehicle($category,$attr);
 
-$modx->log(modX::LOG_LEVEL_INFO,'Adding file resolvers to category...');
+/* now pack in resolvers */
+/*
+$vehicle->resolve('file',array(
+	'source' => $sources['source_assets'],
+	'target' => "return MODX_ASSETS_PATH . 'components/';",
+));
+*/
 $vehicle->resolve('file',array(
 	'source' => $sources['source_core'],
 	'target' => "return MODX_CORE_PATH . 'components/';",
 ));
+
+foreach ($BUILD_RESOLVERS as $resolver) {
+	if ($vehicle->resolve('php', array('source' => $sources['resolvers'] . 'resolve.'.$resolver.'.php'))) {
+		$modx->log(modX::LOG_LEVEL_INFO,'Added resolver "'.$resolver.'" to category.');
+	}
+	else {
+		$modx->log(modX::LOG_LEVEL_INFO,'Could not add resolver "'.$resolver.'" to category.');
+	}
+}
+
+flush();
 $builder->putVehicle($vehicle);
 
-/* load system settings */
-$settings = include $sources['data'].'transport.settings.php';
-if (!is_array($settings)) {
-	$modx->log(modX::LOG_LEVEL_ERROR,'Could not package in settings.');
-} else {
-	$attributes= array(
-		xPDOTransport::UNIQUE_KEY => 'key',
-		xPDOTransport::PRESERVE_KEYS => true,
-		xPDOTransport::UPDATE_OBJECT => false,
-	);
-	foreach ($settings as $setting) {
-		$vehicle = $builder->createVehicle($setting,$attributes);
-		$builder->putVehicle($vehicle);
-	}
-	$modx->log(modX::LOG_LEVEL_INFO,'Packaged in '.count($settings).' System Settings.');
-}
-unset($settings,$setting,$attributes);
-
-/* load menu */
-/*
-$menu = include $sources['data'].'transport.menu.php';
-if (empty($menu)) {
-	$modx->log(modX::LOG_LEVEL_ERROR,'Could not package in menu.');
-} else {
-	$vehicle= $builder->createVehicle($menu,array (
-		xPDOTransport::PRESERVE_KEYS => true,
-		xPDOTransport::UPDATE_OBJECT => true,
-		xPDOTransport::UNIQUE_KEY => 'text',
-		xPDOTransport::RELATED_OBJECTS => true,
-		xPDOTransport::RELATED_OBJECT_ATTRIBUTES => array (
-			'Action' => array (
-				xPDOTransport::PRESERVE_KEYS => false,
-				xPDOTransport::UPDATE_OBJECT => true,
-				xPDOTransport::UNIQUE_KEY => array ('namespace','controller'),
-			),
-		),
-	));
-	$modx->log(modX::LOG_LEVEL_INFO,'Adding in PHP resolvers...');
-	$vehicle->resolve('php',array(
-		'source' => $sources['resolvers'] . 'resolve.tables.php',
-	));
-	$vehicle->resolve('php',array(
-		'source' => $sources['resolvers'] . 'resolve.paths.php',
-	));
-	$builder->putVehicle($vehicle);
-	$modx->log(modX::LOG_LEVEL_INFO,'Packaged in menu.');
-}
-unset($vehicle,$menu);
-*/
 /* now pack in the license file, readme and setup options */
 $builder->setPackageAttributes(array(
+	'changelog' => file_get_contents($sources['docs'] . 'changelog.txt'),
 	'license' => file_get_contents($sources['docs'] . 'license.txt'),
 	'readme' => file_get_contents($sources['docs'] . 'readme.txt'),
-	'changelog' => file_get_contents($sources['docs'] . 'changelog.txt'),
-	//'setup-options' => array(
-		//'source' => $sources['build'].'setup.options.php',
-	//),
+	/*
+	'setup-options' => array(
+			'source' => $sources['build'].'setup.options.php',
+	),
+	*/
 ));
 $modx->log(modX::LOG_LEVEL_INFO,'Added package attributes and setup options.');
 
@@ -168,8 +126,8 @@ $tend= $mtime;
 $totalTime= ($tend - $tstart);
 $totalTime= sprintf("%2.4f s", $totalTime);
 
+$signature = $builder->getSignature();
 if (defined('PKG_AUTO_INSTALL') && PKG_AUTO_INSTALL) {
-	$signature = $builder->getSignature();
 	$sig = explode('-',$signature);
 	$versionSignature = explode('.',$sig[1]);
 
@@ -205,6 +163,9 @@ if (defined('PKG_AUTO_INSTALL') && PKG_AUTO_INSTALL) {
 		$modx->runProcessor('system/clearcache');
 	}
 }
+if (!empty($_GET['download'])) {
+	echo '<script>document.location.href = "/core/packages/' . $signature.'.transport.zip' . '";</script>';
+}
 
 $modx->log(modX::LOG_LEVEL_INFO,"\n<br />Execution time: {$totalTime}\n");
-echo '</pre>';
+if (!XPDO_CLI_MODE) {echo '</pre>';}

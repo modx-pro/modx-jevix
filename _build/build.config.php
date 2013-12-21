@@ -7,6 +7,7 @@ define('PKG_NAME_LOWER',strtolower(PKG_NAME));
 define('PKG_VERSION','1.1.1');
 define('PKG_RELEASE','pl');
 define('PKG_AUTO_INSTALL', true);
+define('PKG_NAMESPACE_PATH', '{core_path}components/'.PKG_NAME_LOWER.'/');
 
 
 /* define paths */
@@ -30,3 +31,8 @@ define('MODX_CORE_URL', MODX_BASE_URL . 'core/');
 define('MODX_MANAGER_URL', MODX_BASE_URL . 'manager/');
 define('MODX_CONNECTORS_URL', MODX_BASE_URL . 'connectors/');
 define('MODX_ASSETS_URL', MODX_BASE_URL . 'assets/');
+
+define('BUILD_SNIPPET_UPDATE', true);
+define('BUILD_SNIPPET_STATIC', false);
+
+$BUILD_RESOLVERS = array();
