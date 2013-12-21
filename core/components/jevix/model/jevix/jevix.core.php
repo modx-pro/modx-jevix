@@ -100,7 +100,7 @@ class JevixCore {
 
 	public $tagsRules = array();
 	public $entities1 = array('"'=>'&quot;', "'"=>'&#39;', '&'=>'&amp;', '<'=>'&lt;', '>'=>'&gt;');
-	public $entities2 = array('<'=>'&lt;', '>'=>'&gt;', '"'=>'&quot;');
+	public $entities2 = array('<'=>'&lt;', '>'=>'&gt;', '"'=>'&quot;', '['=>'&#91;', ']'=>'&#93;');
 	public $textQuotes = array(array('«', '»'), array('„', '“'));
 	public $dash = " — ";
 	public $apostrof = "’";
@@ -764,8 +764,13 @@ class JevixCore {
 	}
 
 	protected function preformatted(&$content = '', $insideTag = null){
+		$tmp = '';
+		$tmp_content = '';
+		$start = $this->curPos;
+		$depth = 0;
 		while($this->curChClass){
 			if($this->curCh == '<'){
+				$tmp = '';
 				$tag = '';
 				$this->saveState();
 				// Пытаемся найти закрывающийся тег
@@ -773,8 +778,36 @@ class JevixCore {
 				// Возвращаемся назад, если тег был найден
 				if($isClosedTag) $this->restoreState();
 				// Если закрылось то, что открылось - заканчиваем и возвращаем true
-				if($isClosedTag && $tag == $insideTag) return;
+				if($isClosedTag && $tag == $insideTag) {
+					// Если закрыли все открытые теги -
+					if ($depth === 0) {
+						// Сохраняем буфер и выходим
+						$content .= $tmp_content;
+						return;
+					}
+					else {
+						$depth --;
+					}
+				}
 			}
+			// Открыт ноый preformatted тег
+			elseif ($this->curCh == '>' && $tmp == $insideTag) {
+				$depth ++;
+			}
+			else {
+				$tmp .= $this->curCh;
+			}
+			$tmp_content.= isset($this->entities2[$this->curCh]) ? $this->entities2[$this->curCh] : $this->curCh;
+			$this->getCh();
+		}
+
+		// Это на случай незакрытых вложенных тегов
+		$this->goToPosition($start);
+		while ($this->curChClass) {
+			$tag = '';
+			$isClosedTag = $this->tagClose($tag);
+			if($isClosedTag) $this->restoreState();
+			if($isClosedTag && $tag == $insideTag) {return;}
 			$content.= isset($this->entities2[$this->curCh]) ? $this->entities2[$this->curCh] : $this->curCh;
 			$this->getCh();
 		}
