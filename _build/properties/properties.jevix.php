@@ -76,11 +76,11 @@ $tmp = array(
 	),
 	'cfgSetTagPreformatted' => array(
 		'type' => 'textarea',
-		'value' => 'pre,code,video',
+		'value' => 'pre,code',
 	),
 	'cfgSetTagBlockType' => array(
 		'type' => 'textarea',
-		'value' => '["h4","h5","h6","ol","ul","blockquote","pre","code"]',
+		'value' => '["h4","h5","h6","ol","ul","blockquote","pre","code","video"]',
 	),
 	'cfgSetTagShort' => array(
 		'type' => 'textarea',

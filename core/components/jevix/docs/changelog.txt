@@ -5,6 +5,7 @@ Changelog for Jevix.
 - Fixed the punctuation at the end of the link.
 - Fixed nested tags in a preformatted blocks.
 - Support for MODX tags in a preformatted blocks.
+- Main class refactor.
 
 1.1.1
 ==============

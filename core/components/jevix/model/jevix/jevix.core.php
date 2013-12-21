@@ -123,7 +123,6 @@ class JevixCore {
 	protected $tagsStack;
 	protected $openedTag;
 	protected $autoReplace; // Автозамена
-	protected $autoPregReplace; // Автозамена с поддержкой регулярных выражений
 	protected $isXHTMLMode  = true; // <br/>, <img/>
 	protected $isAutoBrMode = true; // \n = <br/>
 	protected $isAutoLinkMode = true;
@@ -373,16 +372,6 @@ class JevixCore {
 	}
 
 	/**
-	 * Автозамена с поддержкой регулярных выражений
-	 *
-	 * @param array $from с
-	 * @param array $to на
-	 */
-	function cfgSetAutoPregReplace($from, $to){
-		$this->autoPregReplace = array('from' => $from, 'to' => $to);
-	}
-
-	/**
 	 * Включение или выключение режима XTML
 	 *
 	 * @param boolean $isXHTMLMode
@@ -427,32 +416,10 @@ class JevixCore {
 		$this->noTypoMode = false;
 
 		// Авто растановка BR?
-		if($this->isAutoBrMode) {
+		if ($this->isAutoBrMode) {
 			$this->text = preg_replace('/<br\/?>(\r\n|\n\r|\n)?/ui', $this->nl, $text);
 		} else {
 			$this->text = $text;
-		}
-
-
-		if(!empty($this->autoReplace)){
-			$this->text = str_ireplace($this->autoReplace['from'], $this->autoReplace['to'], $this->text);
-		}
-
-		$replacements = array();
-		if(!empty($this->autoPregReplace)){
-			foreach ($this->autoPregReplace['from'] as $k => $v) {
-				$matches = array();
-				if (preg_match_all($v, $this->text, $matches)) {
-					foreach ($matches[0] as $k2 => $v2) {
-						$replacements['from']["((((($k-$k2)))))"] = $v2;
-						$replacements['to']["((((($k-$k2)))))"] = preg_replace($v, $this->autoPregReplace['to'][$k], $v2);
-					}
-				}
-			}
-		}
-
-		if (!empty($replacements)) {
-			$this->text = str_replace($replacements['from'], array_keys($replacements['from']), $this->text);
 		}
 
 		$this->textBuf = $this->strToArray($this->text);
@@ -468,8 +435,8 @@ class JevixCore {
 		$this->anyThing($content);
 		$errors = $this->errors;
 
-		if (!empty($replacements)) {
-			$content = str_replace(array_keys($replacements['to']), $replacements['to'], $content);
+		if(!empty($this->autoReplace)){
+			$content = str_ireplace($this->autoReplace['from'], $this->autoReplace['to'], $content);
 		}
 
 		return $content;

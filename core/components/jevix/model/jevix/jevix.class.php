@@ -2,138 +2,173 @@
 
 require_once 'jevix.core.php';
 
-class Jevix extends JevixCore{
-    function __construct(modX &$modx,array $config = array()) {
+class Jevix extends JevixCore {
+	protected $replace = array();
+
+
+	/**
+	 * @param modX $modx
+	 * @param array $config
+	 */
+	function __construct(modX &$modx,array $config = array()) {
 		$this->modx =& $modx;
 
 		$corePath = $this->modx->getOption('jevix.core_path',$config,$this->modx->getOption('core_path').'components/jevix/');
-		$assetsUrl = $this->modx->getOption('jevix.assets_url',$config,$this->modx->getOption('assets_url').'components/jevix/');
-		$connectorUrl = $assetsUrl.'connector.php';
-
 		$this->config = array_merge(array(
-			//'assetsUrl' => $assetsUrl,
-			//'cssUrl' => $assetsUrl.'css/',
-			//'jsUrl' => $assetsUrl.'js/',
-			//'imagesUrl' => $assetsUrl.'images/',
-
-			//'connectorUrl' => $connectorUrl,
-
 			'corePath' => $corePath,
 			'modelPath' => $corePath.'model/',
-			//'chunksPath' => $corePath.'elements/chunks/',
-			//'chunkSuffix' => '.chunk.tpl',
-			'snippetsPath' => $corePath.'elements/snippets/',
-			'processorsPath' => $corePath.'processors/',
-		),$config);
 
-		//$this->modx->addPackage('jevix',$this->config['modelPath']);
+			'snippetsPath' => $corePath.'elements/snippets/',
+		), $config);
+
 		$this->modx->lexicon->load('jevix:default');
 	}
 
-	/**
-	 * Initializes Jevix into different contexts.
-	 *
-	 * @access public
-	 * @param string $ctx The context to load. Defaults to web.
-	 */
-	public function initialize($ctx = 'web') {
-		switch ($ctx) {
-			case 'mgr':
-				if (!$this->modx->loadClass('jevix.request.JevixControllerRequest',$this->config['modelPath'],true,true)) {
-					return 'Could not load controller request handler.';
-				}
-				$this->request = new JevixControllerRequest($this);
-				return $this->request->handleRequest();
-			break;
-			case 'connector':
-				if (!$this->modx->loadClass('jevix.request.JevixConnectorRequest',$this->config['modelPath'],true,true)) {
-					return 'Could not load connector request handler.';
-				}
-				$this->request = new JevixConnectorRequest($this);
-				return $this->request->handle();
-			break;
-			default:
-				/* if you wanted to do any generic frontend stuff here.
-				 * For example, if you have a lot of snippets but common code
-				 * in them all at the beginning, you could put it here and just
-				 * call $jevix->initialize($modx->context->get('key'));
-				 * which would run this.
-				 */
-			break;
+
+	public function process($text = '') {
+		if (empty($text)) {return '';}
+
+		$logLevel = $this->modx->getLogLevel();
+		$display_errors = ini_get('display_errors');
+		$error_reporting = ini_get('error_reporting');
+
+		if (!empty($this->config['debug'])) {
+			ini_set('display_errors', 1);
+			ini_set('error_reporting', -1);
+			$this->modx->setLogLevel(xPDO::LOG_LEVEL_INFO);
 		}
-	}
-	
-	
-    function isJson($string) {
-        $tmp = json_decode($string,1);
-		//return (json_last_error() == JSON_ERROR_NONE);	// Not workink in PHP < 5.3
-        //return preg_match('/^[{|\[](.*?)[\]|}]$/iu', $string);
-        if ($tmp != null && is_array($tmp)) {return true;}
-        else {return false;}
+		$this->setParams($this->config);
+
+		$errors = null;
+		$text = $this->preProcess($text);
+		$text = $this->parse($text, $errors);
+		$text = $this->postProcess($text);
+
+		if (!empty($errors) && !empty($logErrors)) {
+			$this->modx->log(modX::LOG_LEVEL_ERROR, 'Jevix errors: ' . print_r($errors, true));
+		}
+
+		if (!empty($debug)) {
+			ini_set('display_errors', $display_errors);
+			ini_set('error_reporting', $error_reporting);
+			$this->modx->setLogLevel($logLevel);
+		}
+
+		return $text;
 	}
 
-	function setParams($params = array()) {
+
+	/**
+	 * @param $text
+	 *
+	 * @return string
+	 */
+	public function preProcess($text) {
+		if (!empty($this->config['cfgSetAutoPregReplace'])) {
+			$replace = $this->modx->fromJSON($this->config['cfgSetAutoPregReplace']);
+			if (is_array($replace) && count($replace) == 2) {
+				foreach ($replace[0] as $k => $v) {
+					preg_match_all($v, $text, $matches);
+					foreach ($matches[0] as $from) {
+						$to = preg_replace($v, $replace[1][$k], $from);
+						$hash = sha1(serialize($from));
+
+						$this->replace[$hash] = $to;
+						$text = str_replace($from, $hash, $text);
+					}
+				}
+			}
+		}
+
+		return $text;
+	}
+
+
+	/**
+	 * @param $text
+	 *
+	 * @return mixed
+	 */
+	public function postProcess($text) {
+		if (!empty($this->replace)) {
+			$text = str_replace(array_keys($this->replace) , $this->replace, $text);
+		}
+
+		return $text;
+	}
+
+
+	/**
+	 * @param array $params
+	 */
+	public function setParams(array $params = array()) {
 		// Allowed tags
 		if (isset($params['cfgAllowTags'])) {
-			$this->setParam('cfgAllowTags',explode(',',$params['cfgAllowTags']));
+			$this->setParam('cfgAllowTags', array_map('trim', explode(',', $params['cfgAllowTags'])));
 			unset($params['cfgAllowTags']);
 		}
-		
+
 		// Other settings
 		foreach ($params as $k => $v) {
 			if (strpos($k, 'cfg') === false) {continue;}
-			
-			if (!method_exists($this, $k)) {
+			elseif (!method_exists($this, $k)) {
 				$this->modx->log(modX::LOG_LEVEL_ERROR, 'Error on Jevix init. There is no method '.$k);
 				continue;
 			}
-			
-			// Flags
-			if (is_bool($v) === true) {
+			elseif (is_bool($v)) {
 				$this->setParam($k,$v);
 			}
-			// Simple methods
-            else if (empty($v)) {continue;}
-			else if (!$this->isJSON($v)) {
-				$value = explode(',', $v);
-				$this->setParam($k,$value);
+			elseif (empty($v)) {
+				continue;
 			}
-			// Advanced methods
-			else if ($k == 'cfgAllowTagParams' || $k == 'cfgSetTagParamsRequired') {
-				$value = json_decode($v, true);
-				foreach ($value as $k2 => $v2) {
-					try {$this->$k($k2,$v2);}
-					catch (Exception $ex) {$this->modx->log(modX::LOG_LEVEL_INFO, $ex);}
-				} 
+			elseif (is_string($v) && $v[0] != '{' && $v[0] != '[') {
+				$value = array_map('trim', explode(',', $v));
+				$this->setParam($k, $value);
 			}
-			else if ($k == 'cfgSetAutoReplace' || $k == 'cfgSetAutoPregReplace') {
-				$value = json_decode($v, true);
-				if (count($value) != 2) {continue;}
-				try {$this->$k($value[0], $value[1]);}
-				catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_INFO, $ex);}
-			}
-			else if ($k == 'cfgSetTagChilds') {
-				$value = json_decode($v, true);
-				foreach ($value as $tmp) {
-					try {$this->cfgSetTagChilds($tmp[0], $tmp[1], $tmp[2], $tmp[3]);}
-					catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_INFO, $ex);}
-				}
-			}
-			else if ($k == 'cfgSetTagParamDefault') {
-				$value = json_decode($v, true);
-				foreach ($value as $tmp) {
-					try {$this->cfgSetTagParamDefault($tmp[0], $tmp[1], $tmp[2], $tmp[3]);}
-					catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_INFO, $ex);}
-				}
-			}
-			// Other methods
 			else {
-				$value = json_decode($v, true);
-				$this->setParam($k,$value);
+				$value = $this->modx->fromJSON($v);
+				switch ($k) {
+					case 'cfgAllowTagParams':
+					case 'cfgSetTagParamsRequired':
+						foreach ($value as $k2 => $v2) {
+							try {$this->$k($k2,$v2);}
+							catch (Exception $ex) {$this->modx->log(modX::LOG_LEVEL_INFO, $ex);}
+						}
+						break;
+
+					case 'cfgSetAutoReplace':
+					case 'cfgSetAutoPregReplace':
+						if (count($value) != 2) {continue;}
+						try {$this->$k($value[0], $value[1]);}
+						catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_INFO, $ex);}
+						break;
+
+					case 'cfgSetTagChilds':
+						foreach ($value as $tmp) {
+							try {$this->$k($tmp[0], $tmp[1], $tmp[2], $tmp[3]);}
+							catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_INFO, $ex);}
+						}
+						break;
+
+					case 'cfgSetTagParamDefault':
+						foreach ($value as $tmp) {
+							try {$this->$k($tmp[0], $tmp[1], $tmp[2], $tmp[3]);}
+							catch(Exception $ex) {$this->modx->log(modX::LOG_LEVEL_INFO, $ex);}
+						}
+						break;
+
+					default:
+						$this->setParam($k, $value);
+				}
 			}
 		}
 	}
 
+
+	/**
+	 * @param $param
+	 * @param $value
+	 */
 	function setParam($param, $value) {
 		try {
 			$this->$param($value);
@@ -142,5 +177,5 @@ class Jevix extends JevixCore{
 			$this->modx->log(modX::LOG_LEVEL_INFO, $ex);
 		}
 	}
-	
+
 }

@@ -1,19 +1,9 @@
 <?php
-if (!empty($debug) && $debug != 'false') {
-	ini_set('display_errors', 1);
-	ini_set('error_reporting', -1);
-	$modx->setLogLevel(xPDO::LOG_LEVEL_INFO);
+/** @var array $scriptProperties */
+/** @var Jevix $Jevix */
+if (!$modx->loadClass('jevix', MODX_CORE_PATH . 'components/jevix/model/jevix/', false, true)) {
+	return 'Could not load Jevix!';
 }
+$Jevix = new Jevix($modx, $scriptProperties);
 
-$modx->Jevix = $modx->getService('jevix','Jevix',$modx->getOption('core_path').'components/jevix/model/jevix/',$scriptProperties);
-if (!($modx->Jevix instanceof Jevix)) return '';
-
-$modx->Jevix->setParams($scriptProperties);
-
-$errors = null;
-$text = $modx->Jevix->parse($input, $errors);
-
-if (!empty($errors) && !empty($logErrors) && $logErrors != 'false') {
-	$modx->log(modX::LOG_LEVEL_INFO, print_r($errors,1));
-}
-return $text;
+return $Jevix->process($scriptProperties['input']);
