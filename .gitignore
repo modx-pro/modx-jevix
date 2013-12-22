@@ -1,1 +1,3 @@
 config.core.php
+.gitignore
+.idea
