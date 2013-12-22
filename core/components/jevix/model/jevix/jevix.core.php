@@ -1468,11 +1468,13 @@ class JevixCore {
 			$url = 'www.'.$url;
 			$href = 'http://'.$url;
 		}
-		if (!empty($href) && preg_match('/[.,-?!:;]+$/', $href, $matches)) {
-			$count = strlen($matches[0]);
-			$href = substr($href, 0, $count * -1);
-			$url = substr($url, 0, $count * -1);
-			$this->goToPosition($this->curPos - $count);
+		if (!empty($url)) {
+			if (preg_match('/[.,-?!:;]+$/', $url, $matches)) {
+				$count = strlen($matches[0]);
+				$url = substr($url, 0, $count * -1);
+				$href = substr($href, 0, $count * -1);
+				$this->goToPosition($this->curPos - $count);
+			}
 			return true;
 		}
 		else {
