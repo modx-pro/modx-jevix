@@ -40,15 +40,15 @@ class Jevix extends JevixCore {
 		$this->setParams($this->config);
 
 		$errors = null;
-		$text = $this->preProcess($text);
+		//$text = $this->preProcess($text);
 		$text = $this->parse($text, $errors);
-		$text = $this->postProcess($text);
+		//$text = $this->postProcess($text);
 
-		if (!empty($errors) && !empty($logErrors)) {
+		if (!empty($errors) && !empty($this->config['logErrors'])) {
 			$this->modx->log(modX::LOG_LEVEL_ERROR, 'Jevix errors: ' . print_r($errors, true));
 		}
 
-		if (!empty($debug)) {
+		if (!empty($this->config['debug'])) {
 			ini_set('display_errors', $display_errors);
 			ini_set('error_reporting', $error_reporting);
 			$this->modx->setLogLevel($logLevel);
@@ -64,22 +64,6 @@ class Jevix extends JevixCore {
 	 * @return string
 	 */
 	public function preProcess($text) {
-		if (!empty($this->config['cfgSetAutoPregReplace'])) {
-			$replace = $this->modx->fromJSON($this->config['cfgSetAutoPregReplace']);
-			if (is_array($replace) && count($replace) == 2) {
-				foreach ($replace[0] as $k => $v) {
-					preg_match_all($v, $text, $matches);
-					foreach ($matches[0] as $from) {
-						$to = preg_replace($v, $replace[1][$k], $from);
-						$hash = sha1(serialize($from));
-
-						$this->replace[$hash] = $to;
-						$text = str_replace($from, $hash, $text);
-					}
-				}
-			}
-		}
-
 		return $text;
 	}
 
@@ -90,10 +74,6 @@ class Jevix extends JevixCore {
 	 * @return mixed
 	 */
 	public function postProcess($text) {
-		if (!empty($this->replace)) {
-			$text = str_replace(array_keys($this->replace) , $this->replace, $text);
-		}
-
 		return $text;
 	}
 

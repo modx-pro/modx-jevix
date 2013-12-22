@@ -100,7 +100,7 @@ class JevixCore {
 
 	public $tagsRules = array();
 	public $entities1 = array('"'=>'&quot;', "'"=>'&#39;', '&'=>'&amp;', '<'=>'&lt;', '>'=>'&gt;');
-	public $entities2 = array('<'=>'&lt;', '>'=>'&gt;', '"'=>'&quot;', '['=>'&#91;', ']'=>'&#93;');
+	public $entities2 = array('<'=>'&lt;', '>'=>'&gt;', '"'=>'&quot;', '['=>'&#91;', ']'=>'&#93;', '&'=>'&amp;');
 	public $textQuotes = array(array('«', '»'), array('„', '“'));
 	public $dash = " — ";
 	public $apostrof = "’";
@@ -123,6 +123,7 @@ class JevixCore {
 	protected $tagsStack;
 	protected $openedTag;
 	protected $autoReplace; // Автозамена
+	protected $autoPregReplace; // Автозамена с поддержкой регулярных выражений
 	protected $isXHTMLMode  = true; // <br/>, <img/>
 	protected $isAutoBrMode = true; // \n = <br/>
 	protected $isAutoLinkMode = true;
@@ -372,6 +373,16 @@ class JevixCore {
 	}
 
 	/**
+	 * Автозамена с поддержкой регулярных выражений
+	 *
+	 * @param array $from с
+	 * @param array $to на
+	 */
+	function cfgSetAutoPregReplace($from, $to){
+		$this->autoPregReplace = array('from' => $from, 'to' => $to);
+	}
+
+	/**
 	 * Включение или выключение режима XTML
 	 *
 	 * @param boolean $isXHTMLMode
@@ -415,6 +426,21 @@ class JevixCore {
 		$this->quotesOpened = 0;
 		$this->noTypoMode = false;
 
+		// Автозамена с регулярными выражениями
+		$replacements = array();
+		if(!empty($this->autoPregReplace)){
+			foreach ($this->autoPregReplace['from'] as $k => $v) {
+				preg_match_all($v, $text, $matches);
+				foreach ($matches[0] as $from) {
+					$to = preg_replace($v, $this->autoPregReplace['to'][$k], $from);
+					$hash = sha1(serialize($from));
+
+					$replacements[$hash] = $to;
+					$text = str_replace($from, $hash, $text);
+				}
+			}
+		}
+
 		// Авто растановка BR?
 		if ($this->isAutoBrMode) {
 			$this->text = preg_replace('/<br\/?>(\r\n|\n\r|\n)?/ui', $this->nl, $text);
@@ -437,6 +463,10 @@ class JevixCore {
 
 		if(!empty($this->autoReplace)){
 			$content = str_ireplace($this->autoReplace['from'], $this->autoReplace['to'], $content);
+		}
+
+		if (!empty($replacements)) {
+			$content = str_replace(array_keys($replacements), $replacements, $content);
 		}
 
 		return $content;
