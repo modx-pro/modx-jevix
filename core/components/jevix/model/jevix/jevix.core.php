@@ -1469,7 +1469,7 @@ class JevixCore {
 			$href = 'http://'.$url;
 		}
 		if (!empty($url)) {
-			if (preg_match('/[.,-?!:;]+$/', $url, $matches)) {
+			if (preg_match('/[\.\,\-\?\!\:\;]+$/', $url, $matches)) {
 				$count = strlen($matches[0]);
 				$url = substr($url, 0, $count * -1);
 				$href = substr($href, 0, $count * -1);
