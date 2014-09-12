@@ -46,7 +46,7 @@ $tmp = array(
 	),
 	'cfgSetAutoPregReplace' => array(
 		'type' => 'textarea',
-		'value' => '[["\/<video>http:\\\\\/\\\\\/(?:www\\\\.|)youtube\\\\.com\\\\\/watch\\\\?v=([a-zA-Z0-9_\\\\-]+)(&.+)?<\\\\\/video>\/Ui","\/<video>http:\\\\\/\\\\\/(?:www\\\\.|)youtu\\\\.be\\\\\/([a-zA-Z0-9_\\\\-]+)(&.+)?<\\\\\/video>\/Ui"],["<iframe width=\"700\" height=\"394\" src=\"http:\/\/www.youtube.com\/embed\/$1\" frameborder=\"0\" allowfullscreen><\/iframe>","<iframe width=\"700\" height=\"394\" src=\"http:\/\/www.youtube.com\/embed\/$1\" frameborder=\"0\" allowfullscreen><\/iframe>"]]',
+		'value' => '[["\/<video>(http|https):\\\\\/\\\\\/(?:www\\\\.|)youtube\\\\.com\\\\\/watch\\\\?v=([a-zA-Z0-9_\\\\-]+)(&.+)?<\\\\\/video>\/Ui","\/<video>(http|https):\\\\\/\\\\\/(?:www\\\\.|)youtu\\\\.be\\\\\/([a-zA-Z0-9_\\\\-]+)(&.+)?<\\\\\/video>\/Ui"],["<iframe width=\"700\" height=\"394\" src=\"$1:\/\/www.youtube.com\/embed\/$2\" frameborder=\"0\" allowfullscreen><\/iframe>","<iframe width=\"700\" height=\"394\" src=\"$1:\/\/www.youtube.com\/embed\/$2\" frameborder=\"0\" allowfullscreen><\/iframe>"]]',
 	),
 
 	'cfgSetTagChilds' => array(
