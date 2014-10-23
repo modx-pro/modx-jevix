@@ -4,8 +4,8 @@
 define('PKG_NAME','Jevix');
 define('PKG_NAME_LOWER',strtolower(PKG_NAME));
 
-define('PKG_VERSION','1.2.0');
-define('PKG_RELEASE','pl2');
+define('PKG_VERSION','1.2.1');
+define('PKG_RELEASE','pl');
 define('PKG_AUTO_INSTALL', true);
 define('PKG_NAMESPACE_PATH', '{core_path}components/'.PKG_NAME_LOWER.'/');
 
