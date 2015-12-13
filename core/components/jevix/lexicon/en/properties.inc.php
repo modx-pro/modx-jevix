@@ -20,3 +20,4 @@ $_lang['jevix_prop_cfgSetTagBlockType'] = 'Tags which do not need to insert <br>
 $_lang['jevix_prop_input'] = 'Text for filtering.';
 $_lang['jevix_prop_debug'] = 'Show all errors and notices on the screen. Need only for development.';
 $_lang['jevix_prop_logErrors'] = 'Log all errors of processing to the system log.';
+$_lang['jevix_prop_escapeTags'] = 'Enable escaping of MODX and Fenom tags, so they will not execute on the page.';

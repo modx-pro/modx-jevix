@@ -1,5 +1,9 @@
 Changelog for Jevix.
 
+1.2.2 pl
+==============
+- Added new parameter escapeTags, disabled by default.
+
 1.2.1 pl
 ==============
 - Improved default cfgSetAutoPregReplace for support of YouTube https.

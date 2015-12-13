@@ -21,6 +21,10 @@ $tmp = array(
 		'type' => 'combo-boolean',
 		'value' => false,
 	),
+	'escapeTags' => array(
+		'type' => 'combo-boolean',
+		'value' => false,
+	),
 
 	'cfgAllowTagParams' => array(
 		'type' => 'textarea',

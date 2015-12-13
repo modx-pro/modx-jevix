@@ -4,6 +4,23 @@
 if (!$modx->loadClass('jevix', MODX_CORE_PATH . 'components/jevix/model/jevix/', false, true)) {
 	return 'Could not load Jevix!';
 }
-$Jevix = new Jevix($modx, $scriptProperties);
+elseif (empty($input)) {
+	return '';
+}
 
-return $Jevix->process($scriptProperties['input']);
+if (!empty($options) && is_string($options) && $options[0] == '{') {
+	$scriptProperties = $modx->fromJSON($options);
+}
+
+$Jevix = new Jevix($modx, $scriptProperties);
+$processed = $Jevix->process($input);
+
+if (!empty($scriptProperties['escapeTags'])) {
+	$processed = str_replace(
+		array('[', ']', '`', '{', '}'),
+		array('&#91;', '&#93;', '&#96;', '&#123;', '&#125;'),
+		$processed
+	);
+}
+
+return $processed;
