@@ -1,3 +1,5 @@
+core/components/jevix/composer.lock
+core/components/jevix/vendor/
 config.core.php
 .gitignore
 .idea

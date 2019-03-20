@@ -1,5 +1,12 @@
 Changelog for Jevix.
 
+1.3.0 pl
+==============
+- Added "agelxnash/jevix" as composer dependency.
+- PSR-2 code refactor.
+- No more "Jevix" category in manager.
+- Requires PHP 5.4+
+
 1.2.2 pl
 ==============
 - Added new parameter escapeTags, disabled by default.
